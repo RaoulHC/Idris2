@@ -117,16 +117,16 @@ namespace Combinators
 
   -- Pairing
   public export
-  Pair : (c, d : Container) -> Container
-  Pair c d = MkContainer (Shape c, Shape d) (\ (p, q) => Either (Position c p) (Position d q))
+  CPair : (c, d : Container) -> Container
+  CPair c d = MkContainer (Shape c, Shape d) (\ (p, q) => Either (Position c p) (Position d q))
 
   export
-  toPair : (Extension c x, Extension d x) -> Extension (Pair c d) x
+  toPair : (Extension c x, Extension d x) -> Extension (CPair c d) x
   toPair (MkExtension shp1 chld1, MkExtension shp2 chld2)
     = MkExtension (shp1, shp2) (either chld1 chld2)
 
   export
-  fromPair : Extension (Pair c d) x -> (Extension c x, Extension d x)
+  fromPair : Extension (CPair c d) x -> (Extension c x, Extension d x)
   fromPair (MkExtension (shp1, shp2) chld)
     = (MkExtension shp1 (chld . Left), MkExtension shp2 (chld . Right))
 
@@ -210,7 +210,7 @@ namespace Comonad
   public export
   record Cofree (c : Container) (x : Type) where
     constructor MkCofree
-    runCofree : M (Pair (Const x) c)
+    runCofree : M (CPair (Const x) c)
 
   export
   extract : Cofree c x -> x
@@ -220,7 +220,7 @@ namespace Comonad
   extend : (Cofree c a -> b) -> Cofree c a -> Cofree c b
   extend alg = MkCofree . unfoldr next . runCofree where
 
-    next : M (Pair (Const a) c) -> Extension (Pair (Const b) c) (M (Pair (Const a) c))
+    next : M (CPair (Const a) c) -> Extension (CPair (Const b) c) (M (CPair (Const a) c))
     next m@(MkM layer) =
       let (_, (MkExtension shp chld)) = fromPair {c = Const a} layer in
       let b = toConst (alg (MkCofree m)) in
@@ -283,9 +283,9 @@ namespace Derivative
     Right shp => Right (MkExtension (shp ** p) chld)
 
   export
-  toPair : Extension (Sum (Pair (Derivative c) d) (Pair c (Derivative d))) x ->
-           Extension (Derivative (Pair c d)) x
-  toPair v = case fromSum {c = Pair (Derivative c) d} {d = Pair c (Derivative d)} v of
+  toPair : Extension (Sum (CPair (Derivative c) d) (CPair c (Derivative d))) x ->
+           Extension (Derivative (CPair c d)) x
+  toPair v = case fromSum {c = CPair (Derivative c) d} {d = CPair c (Derivative d)} v of
     Left p => let (MkExtension (shp1 ** p1) chld1, MkExtension shp2 chld2) = fromPair {c = Derivative c} p in
               MkExtension ((shp1, shp2) ** Left p1) $ \ (p' ** neq) => case p' of
                   Left p1' => chld1 (p1' ** (neq . cong Left))
@@ -296,14 +296,14 @@ namespace Derivative
                   Right p2' => chld2 (p2' ** (neq . cong Right))
 
   export
-  fromPair : Extension (Derivative (Pair c d)) x ->
-             Extension (Sum (Pair (Derivative c) d) (Pair c (Derivative d))) x
+  fromPair : Extension (Derivative (CPair c d)) x ->
+             Extension (Sum (CPair (Derivative c) d) (CPair c (Derivative d))) x
   fromPair (MkExtension ((shp1, shp2) ** p) chld) = case p of
-    Left p1 => toSum {c = Pair (Derivative c) d} {d = Pair c (Derivative d)}
+    Left p1 => toSum {c = CPair (Derivative c) d} {d = CPair c (Derivative d)}
                      (Left (MkExtension ((shp1 ** p1), shp2) $ either
                          (\ p1' => chld (Left (DPair.fst p1') ** DPair.snd p1' . leftInjective))
                          (\ p2 => chld (Right p2 ** absurd))))
-    Right p2 => toSum {c = Pair (Derivative c) d} {d = Pair c (Derivative d)}
+    Right p2 => toSum {c = CPair (Derivative c) d} {d = CPair c (Derivative d)}
                      (Right (MkExtension (shp1, (shp2 ** p2)) $ either
                          (\ p1 => chld (Left p1 ** absurd))
                          (\ p2' => chld (Right (DPair.fst p2') ** DPair.snd p2' . rightInjective))))
@@ -311,7 +311,7 @@ namespace Derivative
 
   export
   fromCompose : Extension (Derivative (Compose c d)) x ->
-                Extension (Pair (Derivative d) (Compose (Derivative c) d)) x
+                Extension (CPair (Derivative d) (Compose (Derivative c) d)) x
   fromCompose (MkExtension (MkExtension shp1 shp2 ** (p1 ** p2)) chld)
     = toPair (left, right) where
 
@@ -327,7 +327,7 @@ namespace Derivative
 
   export
   toCompose : ((s : _) -> DecEq (Position c s)) -> ((s : _) -> DecEq (Position d s)) ->
-              Extension (Pair (Derivative d) (Compose (Derivative c) d)) x ->
+              Extension (CPair (Derivative d) (Compose (Derivative c) d)) x ->
               Extension (Derivative (Compose c d)) x
   toCompose dec1 dec2 v with (fromPair {c = Derivative d} {d = Compose (Derivative c) d} v)
     toCompose dec1 dec2 v | (MkExtension (shp2 ** p2) chld2, w) with (fromCompose w)

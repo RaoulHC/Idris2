@@ -1,0 +1,2 @@
+$1 --no-prelude --no-color --console-width 0 --no-banner PairUnit.idr -c
+rm -rf build

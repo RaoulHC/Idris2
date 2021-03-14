@@ -378,7 +378,7 @@ checkAlternative rig elabinfo nest env fc (UniqueDefault def) alts mexpected
                                              nest env t
                                              (Just exp'))) alts'))
                             (do log "elab" 5 "All failed, running default"
-                                checkImp rig (addAmbig alts' (getName def) elabinfo)
+                                checkImp rig elabinfo
                                              nest env def (Just exp'))
                      else exactlyOne' True fc env
                            (map (\t =>
